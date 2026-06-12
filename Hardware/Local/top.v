@@ -31,6 +31,7 @@ module top#(
     input clk,
     input img_rst, i_rst_n,
     input [2:0] patch_size,
+    input [1007:0] total_memory, 
     input [2:0] stride,
     input [7:0] clauses,
     input [255:0] clause_write,
@@ -49,7 +50,7 @@ module top#(
     output reg [$clog2(CLASSN)-1:0] class_op,
     output reg done,
     output reg done_conv_long,
-    output wire pre_reset
+    output pre_reset
 );       
     wire [CLAUSEN - 1:0] clause_op;     
     reg signed [17:0] temp_sum[CLASSN-1:0];
@@ -88,13 +89,13 @@ module top#(
     reg [$clog2(CLASSN):0] cnt;
     reg should_add;
     reg signed [8:0] weight_snapshot [CLASSN-1:0];
+    reg [4:0] cnt_nxt; 
 
     reg [$clog2(CLAUSEN):0] clause_idx;
     reg done_bit_r;
     reg op_bit_r;
     reg should_add_r;
     reg should_add_d;
-    reg [4:0] cnt_nxt;          // keep same width as original cnt
 
     reg signed [18:0] add_result [0:CLASSN-1];
     integer m, jdx, kdx, ldx;
@@ -102,12 +103,13 @@ module top#(
     assign patch_size_op[0] = patch_size;
     assign stride_op[0]     = stride;
     assign reset     = wea || wea2 || img_rst;
-    assign done_conv = done_conv_arch[clauses-1];
-    assign pre_reset = (cnt_nxt ==1); 
+    assign done_conv = done_conv_arch[clauses-1]; 
+    assign pre_reset = (cnt_nxt == 1);
 
     // ------------------------------------------------------------
     // cnt, done_conv_long
     // ------------------------------------------------------------
+         // keep same width as original cnt
 reg done_conv_long_nxt;
 
 /* Sequential register update */
@@ -179,47 +181,8 @@ reg signed [17:0] matrix1[783:0];
 reg [31:0] kdx_nxt;
 reg [$clog2(CLASSN)-1:0] class_op_nxt;
 reg done_nxt;
-reg [15:0]clause_count[CLAUSEN-1:0];
-reg [15:0]img_count;
-integer fd;
-reg done_conv_long = 0;
-wire done_conv_asset;
-assign done_conv_asset = done || done_conv || done_conv_arch [58] || done_conv_arch [57] || done_conv_arch [56]
- || done_conv_arch [55] || done_conv_arch [54] || done_conv_arch [53] || done_conv_arch [52] || done_conv_arch [51] || done_conv_arch [50]
- || done_conv_arch [49] || done_conv_arch [48] || done_conv_arch [47] || done_conv_arch [46];
- integer i,b;
-initial begin
-    fd = $fopen("weights_dump.txt", "w");
-    if (fd == 0) begin
-        $display("ERROR: Could not open file");
-        $finish;
-    end
-end
-always @(posedge clk)begin
-if(!i_rst_n)begin
-for(b = 0; b < CLAUSEN; b = b + 1)begin
-    clause_count[b] = 0;
-end
-img_count = 1;
-end
-else if(done_conv)begin
-img_count = img_count + 1;
-for(b = 0; b < CLAUSEN; b = b + 1)begin
-    if(clause_op[b])clause_count[b] = clause_count[b] + 1;
-end
-end
-end
-always @(posedge clk) begin
-        if (img_count != 0 && ((img_count % 108) == 0) && done_conv_asset) begin
-            // Marker (optional but recommended)
-            $fwrite(fd, "---- Image %0d ----\n", img_count/108);
 
-            for (i = 0; i < CLAUSEN; i = i + 1) begin
-                // Binary, MSB ? LSB
-                $fwrite(fd, "%0d\n", clause_count[i]);
-            end
-        end
-    end
+
 /* sequential register update */
 always @(posedge clk or negedge i_rst_n) begin
     if (!i_rst_n) begin
@@ -370,38 +333,40 @@ always @(posedge clk or negedge i_rst_n) begin
     end
 end
 
+integer file;
+integer ldx, m;
+
 always @(posedge clk or negedge i_rst_n) begin
     if (!i_rst_n) begin
         for (ldx = 0; ldx < 784; ldx = ldx + 1)
             matrix1[ldx] <= 0;
     end
     else begin
-        for (ldx = 0 ; ldx < CLAUSEN; ldx = ldx + 1)begin
-        for (m = 0 ; m < 784; m = m + 1) begin
-        if(done_conv_arch[ldx])
-            matrix1[m] <= matrix1[m] + $signed((weight[1] * matrix[ldx][m]));
-            end
-            end
-    end
-end
-integer file_handle;
-integer n;
 
-always @(posedge clk or negedge i_rst_n) begin
-    if (!i_rst_n) begin
-        file_handle = $fopen("matrix1_output.txt", "w");
-    end
-    else begin
-        // Example trigger condition:
-        // Replace `final_done` with your actual completion signal
-        if (done_conv_long) begin
-            for (n = 0; n < 784; n = n + 1) begin
-                $fwrite(file_handle, "matrix1[%0d] = %0d\n", n, matrix1[n]);
+        // Accumulate
+        for (ldx = 0 ; ldx < CLAUSEN; ldx = ldx + 1) begin
+            for (m = 0 ; m < 784; m = m + 1) begin
+                if(done_conv_arch[ldx])
+                    matrix1[m] <= matrix1[m] + 
+                                  $signed(weight[0] * matrix[ldx][m]);
             end
-            $fclose(file_handle);
+        end
+
+        // Write matrix1 into file
+        if(done_conv_long) begin
+
+            file = $fopen("matrix1.txt", "w");
+
+            for(m = 0; m < 784; m = m + 1) begin
+                $fwrite(file, "%0d\n", matrix1[m]);
+            end
+
+            $fclose(file);
+
         end
     end
 end
+
 
 /* combinational next-state logic */
 always @(*) begin
@@ -474,7 +439,7 @@ always @(*) begin
 end
 
     wire [2:0] baddr;  
-    wire [5:0] baddrv;  
+    wire [3:0] baddrv;  
     wire [CLAUSEN - 1 : 0]valid;
     assign baddr = (bram_addr_a2  - 2)% 5;
     assign baddrv = (bram_addr_a2 - 2)/ 5;
@@ -553,6 +518,7 @@ end
                 .ycor7(ycor7),
                 .ycor8(ycor8),
                 .matrix(matrix[id]),
+		.total_memory(total_memory),
                 .xo1(xo1[id+1]),
                 .yo1(yo1[id+1]),
                 .yo2(yo2[id+1]),
@@ -624,6 +590,7 @@ end
                 .yo6(yo6[id+1]),
                 .yo7(yo7[id+1]),
                 .yo8(yo8[id+1]),
+		.total_memory(total_memory),
                 .clause_done(clause_done[id+1]),
                 .prev_clause_op(clause_output[id]),
                 .processor_in1(processor_out[id][0]),
