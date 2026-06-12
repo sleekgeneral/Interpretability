@@ -1,1 +1,89 @@
-# Interpretability
+# Reconfigurable Convolutional Coalesced Tsetlin Machine
+
+This repository contains the FPGA implementation of a Reconfigurable Convolutional Coalesced Tsetlin Machine as presented in our paper. The system supports MNIST, FMNIST, KMNIST datasets, and custom dataset testing.
+
+## Specifications
+
+- Maximum number of Clauses :	140 (Reconfigurable)
+
+- Number of Classes	: 10 (Reconfigurable - max = 15)
+
+- Patch Sizes :	3 / 5 / 7 (Reconfigurable)
+
+- Stride : 1 - Patch Size  (Reconfigurable)
+
+- FPGA :ZYNQ ZCU102
+
+- Hierarchy : class_top -> buffer,(uart_rx(remamp unit)-> addr_gen, gen_en),top -> weight_adder, conv_arch -> conv_enable_generation, convolution  
+
+- Ethernet Cable
+
+Note: Weights/clauses are limited to stride = 1. For other strides, get the trained clauses from the TMU library once the stride training update is complete.
+
+Note: The image dimensions have been hard-coded due to hardware constraints. However, if sufficient resources are available, these parameters can be made configurable inputs.
+
+## Getting Started
+### Required Tools
+
+Xilinx Vitis 2024.1 or later version
+ (Platform + Application projects)
+
+Xilinx Vivado 2024.1 or a later version is required for editing or reusing the code.
+
+MATLAB (for preprocessing)
+
+Python (for host code execution)
+
+## Testing Preprocessed Datasets
+
+Preprocessed datasets (10k images each) are included for:
+
+1. MNIST
+
+2. FMNIST
+
+3. KMNIST
+
+**Steps:**
+
+- Open the Vitis platform and application projects.
+
+- Build both platform and application project.
+
+- Run the application and open the serial monitor at 115200 baud.
+
+- Run the Python host code when the serial monitor displays:Waiting for 10k images
+
+- The Python script sends images into DDR memory for testing.
+
+## Custom images Testing
+
+Preprocess images using:
+
+img_to_hex.m
+
+image_padded.m
+
+Send preprocessed images via python.py to the FPGA.
+
+## Custom Clauses and Weights
+
+Obtain clauses and weights from the TMU library.
+
+Preprocess clauses using clause_formatting.m.
+
+Send clauses to python.py to generate .h files.
+
+Preprocess weights using weights_generator and send the resulting 3 files to python.py.
+
+Include generated .h files in the Vitis workspace.
+
+Implement custom BRAM and weights access code in main.c.
+
+Reference implementations for other datasets are provided in main.c.
+
+## Additional Resources
+
+A video tutorial is attached demonstrating the complete testing and deployment process.
+
+To execute the design, the Vitis-side source code is provided in the SW folder. Alternatively, the complete workspace can be accessed through the following link:https://drive.google.com/drive/folders/169Ruq36pJO8Rfa5NuXUSX3CmmTXkMXMj?usp=sharing
