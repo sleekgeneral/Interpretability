@@ -1,89 +1,197 @@
-# Reconfigurable Convolutional Coalesced Tsetlin Machine
+# FPGA-Based Local and Global Interpretability Framework for Convolutional Tsetlin Machines
 
-This repository contains the FPGA implementation of a Reconfigurable Convolutional Coalesced Tsetlin Machine as presented in our paper. The system supports MNIST, FMNIST, KMNIST datasets, and custom dataset testing.
+This repository contains the FPGA implementation of a hardware-accelerated interpretability framework for Convolutional Tsetlin Machines (CTMs). The design supports both **local interpretability** and **global interpretability** generation for trained CTM models.
 
-## Specifications
+The implementation has been validated using the **MNIST** and **EMNIST** datasets on a Xilinx Zynq UltraScale+ FPGA platform.
 
-- Maximum number of Clauses :	140 (Reconfigurable)
+---
 
-- Number of Classes	: 10 (Reconfigurable - max = 15)
+# Specifications
 
-- Patch Sizes :	3 / 5 / 7 (Reconfigurable)
+| Parameter               | Value                   |
+| ----------------------- | ----------------------- |
+| Number of Clauses       | 152 (Fixed)             |
+| Patch Size              | 7 × 7 (Fixed)           |
+| Stride                  | 1 (Fixed)               |
+| Supported Classes       | 10 (MNIST), 8 (EMNIST)  |
+| FPGA Platform           | Zynq UltraScale+ ZCU102 |
+| Communication Interface | UART                    |
 
-- Stride : 1 - Patch Size  (Reconfigurable)
+### Notes
 
-- FPGA :ZYNQ ZCU102
+* Patch size is fixed at **7 × 7**.
+* Stride is fixed at **1**.
+* The design is intended for interpretability generation only.
+* Clause and weight configurations are dataset-specific.
+* The implementation has been tested on **MNIST** and **EMNIST** datasets.
 
-- Hierarchy : class_top -> buffer,(uart_rx(remamp unit)-> addr_gen, gen_en),top -> weight_adder, conv_arch -> conv_enable_generation, convolution  
+---
 
-- Ethernet Cable
+# Repository Structure
 
-Note: Weights/clauses are limited to stride = 1. For other strides, get the trained clauses from the TMU library once the stride training update is complete.
+## Hardware
 
-Note: The image dimensions have been hard-coded due to hardware constraints. However, if sufficient resources are available, these parameters can be made configurable inputs.
+The hardware directory contains:
 
-## Getting Started
-### Required Tools
+* Verilog source files (`.v`)
+* Testbench files
+* Clause memory initialization files (`.coe`)
+* Weight memory initialization files (`.coe`)
+* Vivado project sources
 
-Xilinx Vitis 2024.1 or later version
- (Platform + Application projects)
+### Hardware Hierarchy
 
-Xilinx Vivado 2024.1 or a later version is required for editing or reusing the code.
+```text
+class_top
+├── buffer
+├── uart_rx
+│   ├── remap_unit
+│   ├── addr_gen
+│   └── gen_en
+└── top
+    ├── weight_adder
+    ├── conv_arch
+    │   ├── conv_enable_generation
+    │   ├── convolution
+    │   │   └── interpretability
+```
 
-MATLAB (for preprocessing)
+---
 
-Python (for host code execution)
+## Software
 
-## Testing Preprocessed Datasets
+The software directory contains:
 
-Preprocessed datasets (10k images each) are included for:
+* Vitis source files (`.c`)
+* Utility functions
+* Dataset-specific implementations
+
+These files can be used to recreate the software environment within Xilinx Vitis.
+
+---
+
+## MATLAB Scripts
+
+MATLAB scripts are provided for software-side experimentation and result recreation purposes only.
+
+These scripts are not required for FPGA execution and are intended for:
+
+* Data analysis
+* Result verification
+* Interpretability visualization
+* Reproduction of software-generated figures
+
+---
+
+# Local Interpretability
+
+The local interpretability architecture generates input-specific interpretation maps by identifying activated clauses and projecting their corresponding patch literals onto valid image regions.
+
+### Features
+
+* Hardware-accelerated clause evaluation
+* Patch-based interpretation generation
+* Support for MNIST and EMNIST datasets
+* Fixed 7 × 7 patch extraction
+* Real-time interpretability generation through FPGA execution
+
+### Execution Flow
+
+1. Load clauses and weights into FPGA memory.
+2. Send input images through UART.
+3. Perform convolutional clause evaluation.
+4. Generate activated clause locations.
+5. Project valid patch literals onto image space.
+6. Produce local interpretation maps.
+
+---
+
+# Global Interpretability
+
+Global interpretability generation is implemented using a standalone hardware module.
+
+### Files
+
+```text
+global.v
+```
+
+### Inputs
+
+* Clause memory initialization files (`.coe`)
+* Combined weight files (`.coe`)
+
+The same weight storage structure is used for both MNIST and EMNIST models.
+
+### Features
+
+* Dataset-level interpretability generation
+* Clause aggregation across classes
+* Hardware-based visualization support
+* Independent execution from the local interpretability pipeline
+
+### Execution Flow
+
+1. Load clauses from COE files.
+2. Load combined weight memories.
+3. Execute clause aggregation.
+4. Generate class-level interpretability maps.
+5. Export results for visualization and analysis.
+
+---
+
+# Getting Started
+
+## Required Tools
+
+The following tools are recommended:
+
+* Xilinx Vivado 2024.1 or later
+* Xilinx Vitis 2024.1 or later
+* MATLAB (optional, for result recreation and analysis)
+
+---
+
+# Tested Datasets
+
+The implementation has been verified using:
 
 1. MNIST
+2. EMNIST
 
-2. FMNIST
+Both datasets were evaluated on the Zynq UltraScale+ ZCU102 FPGA platform.
 
-3. KMNIST
+---
 
-**Steps:**
+# Reproducing Results
 
-- Open the Vitis platform and application projects.
+### Hardware
 
-- Build both platform and application project.
+1. Open the Vivado project.
+2. Generate the bitstream.
+3. Program the FPGA.
+4. Load the required COE files.
+5. Execute the design.
 
-- Run the application and open the serial monitor at 115200 baud.
+### Software
 
-- Run the Python host code when the serial monitor displays:Waiting for 10k images
+1. Open the Vitis project.
+2. Build the application.
+3. Program the FPGA.
+4. Execute the application through UART communication.
 
-- The Python script sends images into DDR memory for testing.
+### MATLAB
 
-## Custom images Testing
+MATLAB scripts may be used to recreate plots, visualizations, and analysis results presented in the associated work.
 
-Preprocess images using:
+---
 
-img_to_hex.m
+# License
 
-image_padded.m
+This repository is intended for academic and research purposes. Please refer to the license file for usage and distribution information.
 
-Send preprocessed images via python.py to the FPGA.
+---
 
-## Custom Clauses and Weights
+# Citation
 
-Obtain clauses and weights from the TMU library.
-
-Preprocess clauses using clause_formatting.m.
-
-Send clauses to python.py to generate .h files.
-
-Preprocess weights using weights_generator and send the resulting 3 files to python.py.
-
-Include generated .h files in the Vitis workspace.
-
-Implement custom BRAM and weights access code in main.c.
-
-Reference implementations for other datasets are provided in main.c.
-
-## Additional Resources
-
-A video tutorial is attached demonstrating the complete testing and deployment process.
-
-To execute the design, the Vitis-side source code is provided in the SW folder. Alternatively, the complete workspace can be accessed through the following link:https://drive.google.com/drive/folders/169Ruq36pJO8Rfa5NuXUSX3CmmTXkMXMj?usp=sharing
+If this repository contributes to your research, please cite the associated publication describing the FPGA-based local and global interpretability framework for Convolutional Tsetlin Machines.
