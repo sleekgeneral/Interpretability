@@ -44,8 +44,7 @@ The hardware directory contains:
 ```text
 class_top
 ├── buffer
-├── uart_rx
-│   ├── remap_unit
+|── remap_unit
 │   ├── addr_gen
 │   └── gen_en
 └── top
