@@ -183,3 +183,21 @@ Both datasets were evaluated on the Zynq UltraScale+ ZCU102 FPGA platform.
 
 MATLAB scripts may be used to recreate plots, visualizations.
 
+---
+
+## Pre-Generated Hardware Files
+
+For convenience, the repository also includes pre-generated hardware outputs:
+
+* FPGA bitstream files (`.bit`)
+* Hardware platform files (`.xsa`)
+
+These files allow users to directly program the Zynq UltraScale+ ZCU102 FPGA and recreate the software environment in Vitis without regenerating the hardware design from Vivado.
+
+Users may either:
+
+1. Use the provided `.xsa` file to create a new Vitis platform project.
+2. Use the provided `.bit` file to directly program the FPGA.
+3. Modify the RTL design and regenerate the hardware files if required.
+
+
