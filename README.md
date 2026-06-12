@@ -10,7 +10,7 @@ The implementation has been validated using the **MNIST** and **EMNIST** dataset
 
 | Parameter               | Value                   |
 | ----------------------- | ----------------------- |
-| Number of Clauses       | 152 (Fixed)             |
+| Number of Clauses       | 150 (Fixed)             |
 | Patch Size              | 7 × 7 (Fixed)           |
 | Stride                  | 1 (Fixed)               |
 | Supported Classes       | 10 (MNIST), 8 (EMNIST)  |
@@ -181,16 +181,5 @@ Both datasets were evaluated on the Zynq UltraScale+ ZCU102 FPGA platform.
 
 ### MATLAB
 
-MATLAB scripts may be used to recreate plots, visualizations, and analysis results presented in the associated work.
+MATLAB scripts may be used to recreate plots, visualizations.
 
----
-
-# License
-
-This repository is intended for academic and research purposes. Please refer to the license file for usage and distribution information.
-
----
-
-# Citation
-
-If this repository contributes to your research, please cite the associated publication describing the FPGA-based local and global interpretability framework for Convolutional Tsetlin Machines.
